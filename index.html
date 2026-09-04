@@ -24,6 +24,10 @@
         const db = getFirestore(app);
 
         let isAdmin = localStorage.getItem('isAdmin') === 'true';
+        let globalMistakes = [];
+        let globalScores = {};
+        let globalWeekly = {};
+        let selectedFilterName = null; // Filter for specific person
 
         window.addEventListener('DOMContentLoaded', () => {
             if (isAdmin) {
@@ -45,7 +49,7 @@
                 document.getElementById('adminUser').value = "";
                 document.getElementById('adminPass').value = "";
                 alert("🎉 Welcome Boss! Ready to roast?");
-                fetchData();
+                renderUI();
             } else {
                 alert("❌ Wrong password! Try again buddy.");
             }
@@ -57,7 +61,7 @@
             document.getElementById('adminSection').style.display = 'none';
             document.getElementById('loginBox').style.display = 'block';
             alert("👋 Logged out safely!");
-            fetchData();
+            renderUI();
         };
 
         window.addMistake = async function() {
@@ -105,52 +109,101 @@
             }
         };
 
+        // Filter mistakes when clicking a person's name on leaderboard
+        window.filterByPerson = function(name) {
+            if (selectedFilterName === name) {
+                selectedFilterName = null; // Toggle off if already selected
+                document.getElementById('resetFilterBtn').style.display = 'none';
+            } else {
+                selectedFilterName = name;
+                document.getElementById('resetFilterBtn').style.display = 'inline-block';
+            }
+            renderUI();
+        };
+
+        window.resetFilter = function() {
+            selectedFilterName = null;
+            document.getElementById('resetFilterBtn').style.display = 'none';
+            renderUI();
+        };
+
         function fetchData() {
             onSnapshot(collection(db, "mistakes"), (snapshot) => {
-                let mistakes = [];
-                let scores = {};
+                globalMistakes = [];
+                globalScores = {};
+                globalWeekly = {};
+
+                const oneWeekAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
 
                 snapshot.forEach((document) => {
                     const data = document.data();
-                    mistakes.push({ id: document.id, ...data });
-                    scores[data.name] = (scores[data.name] || 0) + 1;
+                    globalMistakes.push({ id: document.id, ...data });
+                    
+                    globalScores[data.name] = (globalScores[data.name] || 0) + 1;
+
+                    if (data.timestamp >= oneWeekAgo) {
+                        globalWeekly[data.name] = (globalWeekly[data.name] || 0) + 1;
+                    }
                 });
 
-                mistakes.sort((a, b) => b.timestamp - a.timestamp);
-
-                updateUI(mistakes, scores);
+                globalMistakes.sort((a, b) => b.timestamp - a.timestamp);
+                renderUI();
             });
         }
 
-        function updateUI(mistakes, scores) {
+        function renderUI() {
+            // Mistakes List Render
             const mistakeListUl = document.getElementById('mistakeList');
             mistakeListUl.innerHTML = "";
             
-            mistakes.forEach(item => {
-                const li = document.createElement('li');
-                
-                let deleteBtnHtml = "";
-                if (isAdmin) {
-                    deleteBtnHtml = `<button onclick="deleteMistake('${item.id}')" class="delete-btn">🗑️ Delete</button>`;
-                }
+            // Filter mistakes if a specific person is clicked
+            const filteredMistakes = selectedFilterName 
+                ? globalMistakes.filter(item => item.name === selectedFilterName)
+                : globalMistakes;
 
-                li.innerHTML = `<strong>👤 ${item.name}</strong><br>
-                                ❌ <em>Mistake:</em> ${item.mistake}<br>
-                                <div class="real-fact">✅ <em>Real Fact:</em> ${item.real}</div>
-                                ${deleteBtnHtml}`;
-                mistakeListUl.appendChild(li);
-            });
+            if (filteredMistakes.length === 0) {
+                mistakeListUl.innerHTML = `<li style="text-align:center; color:#94a3b8;">No mistakes found for this person!</li>`;
+            } else {
+                filteredMistakes.forEach(item => {
+                    const li = document.createElement('li');
+                    
+                    let deleteBtnHtml = "";
+                    if (isAdmin) {
+                        deleteBtnHtml = `<button onclick="deleteMistake('${item.id}')" class="delete-btn">🗑️ Delete</button>`;
+                    }
 
+                    li.innerHTML = `<strong>👤 ${item.name}</strong><br>
+                                    ❌ <em>Mistake:</em> ${item.mistake}<br>
+                                    <div class="real-fact">✅ <em>Real Fact:</em> ${item.real}</div>
+                                    ${deleteBtnHtml}`;
+                    mistakeListUl.appendChild(li);
+                });
+            }
+
+            // Weekly Winner Banner
+            const weeklyWinnerCard = document.getElementById('weeklyWinnerCard');
+            const sortedWeekly = Object.entries(globalWeekly).sort((a, b) => b[1] - a[1]);
+
+            if (sortedWeekly.length > 0) {
+                const [topWeeklyName, topWeeklyCount] = sortedWeekly[0];
+                weeklyWinnerCard.innerHTML = `🔥 <strong>${topWeeklyName}</strong> is leading this week with <strong>${topWeeklyCount} blunders</strong>! 🤡`;
+                weeklyWinnerCard.style.display = "block";
+            } else {
+                weeklyWinnerCard.style.display = "none";
+            }
+
+            // Leaderboard Render
             const leaderboardUl = document.getElementById('leaderboardList');
             leaderboardUl.innerHTML = "";
             
-            const sortedScores = Object.entries(scores).sort((a, b) => b[1] - a[1]);
+            const sortedScores = Object.entries(globalScores).sort((a, b) => b[1] - a[1]);
 
             sortedScores.forEach(([name, count], index) => {
                 const li = document.createElement('li');
                 li.className = "leaderboard-item";
                 
                 if (index === 0) li.classList.add('rank-1');
+                if (selectedFilterName === name) li.style.border = "2px solid #8b5cf6";
 
                 let rankBadge = `#${index + 1}`;
                 if (index === 0) rankBadge = "🥇 1st (Legend)";
@@ -159,7 +212,7 @@
 
                 let titleTag = count > 3 ? "🔥 Pro Blunderer" : "🐣 Rookie";
 
-                li.innerHTML = `<span><strong>${rankBadge} &nbsp; ${name}</strong> <span style="font-size:11px; color:#94a3b8;">(${titleTag})</span></span> <span><strong>${count} mistakes</strong></span>`;
+                li.innerHTML = `<span onclick="filterByPerson('${name}')" style="cursor:pointer;" title="Click to view mistakes"><strong>${rankBadge} &nbsp; ${name}</strong> <span style="font-size:11px; color:#94a3b8;">(${titleTag}) 🔍</span></span> <span><strong>${count} mistakes</strong></span>`;
                 leaderboardUl.appendChild(li);
             });
         }
@@ -204,11 +257,51 @@
             text-shadow: 0 0 15px rgba(192, 132, 252, 0.4);
         }
 
-        h3 {
-            color: #a78bfa;
+        .header-flex {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             border-bottom: 2px solid var(--border);
             padding-bottom: 5px;
             margin-top: 25px;
+        }
+
+        h3 {
+            color: #a78bfa;
+            margin: 0;
+        }
+
+        .reset-btn {
+            background: #374151;
+            color: #f8fafc;
+            border: none;
+            padding: 4px 10px;
+            font-size: 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: none;
+        }
+        .reset-btn:hover {
+            background: #4b5563;
+        }
+
+        .weekly-banner {
+            background: linear-gradient(135deg, #f59e0b, #ef4444);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+            display: none;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
         }
 
         input, textarea { 
@@ -282,9 +375,12 @@
             padding: 12px 15px; 
             margin: 8px 0;
             border-radius: 8px;
+            transition: background 0.2s;
+        }
+        .leaderboard-item:hover {
+            background: #252f3f;
         }
 
-        /* Special style for Rank 1 Legend */
         .rank-1 {
             background: linear-gradient(90deg, #371d38, #1f2937) !important;
             border-left: 5px solid #f59e0b !important;
@@ -334,8 +430,11 @@
 <div class="container">
     <h2>🤪 Hall of Blunders 🏆</h2>
 
+    <!-- Weekly Winner Banner -->
+    <div id="weeklyWinnerCard" class="weekly-banner"></div>
+
     <!-- Login Box -->
-    <div id="loginBox" class="login-box">
+    <div id5="loginBox" class="login-box">
         <h3>🔒 Admin Login</h3>
         <input type="text" id="adminUser" placeholder="Admin Name">
         <input type="password" id="adminPass" placeholder="Password">
@@ -354,10 +453,14 @@
 
     <!-- Leaderboard Scoreboard -->
     <h3>👑 Leaderboard (Top Blunderers)</h3>
+    <p style="font-size: 12px; color: #94a3b8; text-align: center; margin-top: 5px;">👆 Click on any person's name to view only their mistakes!</p>
     <ul id="leaderboardList"></ul>
 
-    <!-- Mistakes List -->
-    <h3>📜 Roasts & Reality Checks</h3>
+    <!-- Mistakes List with Reset Filter Button -->
+    <div class="header-flex">
+        <h3>📜 Roasts & Reality Checks</h3>
+        <button id="resetFilterBtn" class="reset-btn" onclick="resetFilter()">Show All 🔄</button>
+    </div>
     <ul id="mistakeList"></ul>
 </div>
 
