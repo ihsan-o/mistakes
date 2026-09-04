@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mistake Leaderboard 🏆</title>
+    <title>🤪 Ultimate Mistake Leaderboard 🏆</title>
     
     <!-- Firebase SDK (v10) -->
     <script type="module">
@@ -44,10 +44,10 @@
                 document.getElementById('loginBox').style.display = 'none';
                 document.getElementById('adminUser').value = "";
                 document.getElementById('adminPass').value = "";
-                alert("Login Successful!");
+                alert("🎉 Welcome Boss! Ready to roast?");
                 fetchData();
             } else {
-                alert("Invalid Username or Password!");
+                alert("❌ Wrong password! Try again buddy.");
             }
         };
 
@@ -56,13 +56,13 @@
             localStorage.setItem('isAdmin', 'false');
             document.getElementById('adminSection').style.display = 'none';
             document.getElementById('loginBox').style.display = 'block';
-            alert("Logged out successfully!");
+            alert("👋 Logged out safely!");
             fetchData();
         };
 
         window.addMistake = async function() {
             if (!isAdmin) {
-                alert("You don't have permission!");
+                alert("Nice try! Only the admin can roast here 🛑");
                 return;
             }
 
@@ -71,7 +71,7 @@
             const real = document.getElementById('realText').value.trim();
 
             if (name === "" || mistake === "" || real === "") {
-                alert("Please fill in all fields!");
+                alert("⚠️ Ellam fill cheyyuvaa, ennale roast kollu!");
                 return;
             }
 
@@ -86,7 +86,7 @@
                 document.getElementById('personName').value = "";
                 document.getElementById('mistakeText').value = "";
                 document.getElementById('realText').value = "";
-                alert("Mistake posted successfully!");
+                alert("🔥 Roast successfully posted to the hall of fame!");
             } catch (e) {
                 console.error("Error adding document: ", e);
                 alert("Error posting mistake!");
@@ -94,18 +94,13 @@
         };
 
         window.deleteMistake = async function(id) {
-            if (!isAdmin) {
-                alert("You don't have permission!");
-                return;
-            }
+            if (!isAdmin) return;
 
-            if (confirm("Are you sure you want to delete this mistake?")) {
+            if (confirm("🗑️ Ithu delete cheyyanam enn urappano?")) {
                 try {
                     await deleteDoc(doc(db, "mistakes", id));
-                    alert("Mistake deleted successfully!");
                 } catch (e) {
                     console.error("Error deleting document: ", e);
-                    alert("Error deleting mistake!");
                 }
             }
         };
@@ -136,7 +131,7 @@
                 
                 let deleteBtnHtml = "";
                 if (isAdmin) {
-                    deleteBtnHtml = `<button onclick="deleteMistake('${item.id}')" class="delete-btn">Delete</button>`;
+                    deleteBtnHtml = `<button onclick="deleteMistake('${item.id}')" class="delete-btn">🗑️ Delete</button>`;
                 }
 
                 li.innerHTML = `<strong>👤 ${item.name}</strong><br>
@@ -155,12 +150,16 @@
                 const li = document.createElement('li');
                 li.className = "leaderboard-item";
                 
+                if (index === 0) li.classList.add('rank-1');
+
                 let rankBadge = `#${index + 1}`;
-                if (index === 0) rankBadge = "🥇 1st";
+                if (index === 0) rankBadge = "🥇 1st (Legend)";
                 else if (index === 1) rankBadge = "🥈 2nd";
                 else if (index === 2) rankBadge = "🥉 3rd";
 
-                li.innerHTML = `<span><strong>${rankBadge} &nbsp; ${name}</strong></span> <span><strong>${count} mistakes</strong></span>`;
+                let titleTag = count > 3 ? "🔥 Pro Blunderer" : "🐣 Rookie";
+
+                li.innerHTML = `<span><strong>${rankBadge} &nbsp; ${name}</strong> <span style="font-size:11px; color:#94a3b8;">(${titleTag})</span></span> <span><strong>${count} mistakes</strong></span>`;
                 leaderboardUl.appendChild(li);
             });
         }
@@ -168,15 +167,15 @@
 
     <style>
         :root {
-            --bg-color: #0f172a;
-            --card-bg: #1e293b;
+            --bg-color: #090d16;
+            --card-bg: #111827;
             --text-color: #f8fafc;
-            --primary: #6366f1;
-            --primary-hover: #4f46e5;
-            --border: #334155;
-            --mistake-bg: #331f24;
+            --primary: #8b5cf6;
+            --primary-hover: #7c3aed;
+            --border: #1f2937;
+            --mistake-bg: #1f1d24;
             --mistake-border: #f43f5e;
-            --real-bg: #14352c;
+            --real-bg: #064e3b55;
             --real-text: #34d399;
         }
 
@@ -193,25 +192,33 @@
             margin: auto; 
             background: var(--card-bg); 
             padding: 25px; 
-            border-radius: 12px; 
-            box-shadow: 0 10px 25px rgba(0,0,0,0.3); 
+            border-radius: 16px; 
+            box-shadow: 0 10px 30px rgba(139, 92, 246, 0.15); 
             border: 1px solid var(--border);
         }
 
-        h2, h3 { 
-            color: #818cf8; 
+        h2 { 
+            color: #c084fc; 
             text-align: center; 
-            margin-top: 10px;
+            font-size: 26px;
+            text-shadow: 0 0 15px rgba(192, 132, 252, 0.4);
+        }
+
+        h3 {
+            color: #a78bfa;
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 5px;
+            margin-top: 25px;
         }
 
         input, textarea { 
             width: 100%; 
             padding: 12px; 
             margin: 8px 0; 
-            background: #0f172a;
+            background: #1f2937;
             border: 1px solid var(--border); 
             color: var(--text-color);
-            border-radius: 6px; 
+            border-radius: 8px; 
             box-sizing: border-box; 
             font-size: 14px;
         }
@@ -219,24 +226,26 @@
         input:focus, textarea:focus {
             outline: none;
             border-color: var(--primary);
+            box-shadow: 0 0 8px rgba(139, 92, 246, 0.4);
         }
 
         button { 
-            background-color: var(--primary); 
+            background: linear-gradient(135deg, #8b5cf6, #ec4899);
             color: white; 
             padding: 12px; 
             border: none; 
             width: 100%; 
-            border-radius: 6px; 
+            border-radius: 8px; 
             cursor: pointer; 
             font-size: 16px; 
             font-weight: 600;
-            transition: background 0.2s;
+            transition: transform 0.1s, opacity 0.2s;
             margin-top: 5px;
         }
 
         button:hover { 
-            background-color: var(--primary-hover); 
+            opacity: 0.9;
+            transform: scale(1.01);
         }
 
         ul { 
@@ -245,12 +254,13 @@
         }
 
         li { 
-            background: var(--mistake-bg); 
+            background: #1a2234; 
             margin: 12px 0; 
             padding: 15px; 
-            border-left: 5px solid var(--mistake-border); 
-            border-radius: 6px; 
+            border-left: 5px solid #f43f5e; 
+            border-radius: 8px; 
             font-size: 14px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
 
         .real-fact { 
@@ -259,89 +269,95 @@
             margin-top: 8px; 
             background: var(--real-bg); 
             padding: 8px 10px; 
-            border-radius: 4px; 
+            border-radius: 6px; 
+            border: 1px solid #065f46;
         }
 
         .leaderboard-item { 
-            background: #111827; 
+            background: #1f2937; 
             border-left: 5px solid #10b981; 
             display: flex; 
             justify-content: space-between; 
-            padding: 12px 15mm 12px 15px; 
+            align-items: center;
+            padding: 12px 15px; 
             margin: 8px 0;
-            border-radius: 6px;
+            border-radius: 8px;
+        }
+
+        /* Special style for Rank 1 Legend */
+        .rank-1 {
+            background: linear-gradient(90deg, #371d38, #1f2937) !important;
+            border-left: 5px solid #f59e0b !important;
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.2);
         }
         
         #adminSection { 
             display: none; 
-            background: #111827; 
+            background: #1a2234; 
             padding: 20px; 
-            border-radius: 8px; 
+            border-radius: 12px; 
             margin-bottom: 25px; 
-            border: 1px dashed #6366f1; 
+            border: 1px dashed #8b5cf6; 
         }
 
         .login-box { 
-            background: #111827; 
+            background: #1a2234; 
             padding: 20px; 
-            border-radius: 8px; 
+            border-radius: 12px; 
             margin-bottom: 25px; 
             border: 1px solid var(--border);
         }
 
         .logout-btn { 
-            background-color: #ef4444; 
+            background: linear-gradient(135deg, #ef4444, #dc2626); 
             margin-top: 15px; 
-        }
-        .logout-btn:hover { 
-            background-color: #dc2626; 
         }
 
         .delete-btn {
-            background-color: #ef4444;
+            background: #ef4444;
             color: white;
             border: none;
-            padding: 5px 10px;
+            padding: 6px 12px;
             font-size: 12px;
-            border-radius: 4px;
+            border-radius: 6px;
             cursor: pointer;
             margin-top: 10px;
             width: auto;
         }
         .delete-btn:hover {
-            background-color: #dc2626;
+            background: #dc2626;
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>🤪 Mistake Leaderboard 🏆</h2>
+    <h2>🤪 Hall of Blunders 🏆</h2>
 
     <!-- Login Box -->
     <div id="loginBox" class="login-box">
         <h3>🔒 Admin Login</h3>
         <input type="text" id="adminUser" placeholder="Admin Name">
         <input type="password" id="adminPass" placeholder="Password">
-        <button onclick="loginAdmin()">Login</button>
+        <button onclick="loginAdmin()">Login to Roast</button>
     </div>
 
     <!-- Admin Panel -->
     <div id="adminSection">
-        <h3>✨ Add New Mistake (Admin Panel)</h3>
+        <h3>✨ Drop a New Mistake (Admin Panel)</h3>
         <input type="text" id="personName" placeholder="Who said it? (Name)">
-        <textarea id="mistakeText" placeholder="❌ What was the mistake?"></textarea>
-        <textarea id="realText" placeholder="✅ What is the real fact?"></textarea>
-        <button onclick="addMistake()">Post Mistake</button>
+        <textarea id="mistakeText" placeholder="❌ What did they say? (The Blunder)"></textarea>
+        <textarea id="realText" placeholder="✅ What is the actual fact?"></textarea>
+        <button onclick="addMistake()">🚀 Post Roast</button>
         <button class="logout-btn" onclick="logoutAdmin()">Logout</button>
     </div>
 
     <!-- Leaderboard Scoreboard -->
-    <h3>👑 Leaderboard (Top Mistakes)</h3>
+    <h3>👑 Leaderboard (Top Blunderers)</h3>
     <ul id="leaderboardList"></ul>
 
     <!-- Mistakes List -->
-    <h3>📜 Mistakes & Real Facts</h3>
+    <h3>📜 Roasts & Reality Checks</h3>
     <ul id="mistakeList"></ul>
 </div>
 
