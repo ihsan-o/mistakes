@@ -8,7 +8,7 @@
     <!-- Firebase SDK (v10) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, addDoc, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAGFNly3GoHtX_dftyae7PmEIxqMPWJv1Y",
@@ -20,7 +20,6 @@
             measurementId: "G-HGY8ZZRW2M"
         };
 
-        // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
@@ -46,6 +45,7 @@
                 document.getElementById('adminUser').value = "";
                 document.getElementById('adminPass').value = "";
                 alert("Login Successful!");
+                fetchData(); // Refresh UI to show delete buttons
             } else {
                 alert("Invalid Username or Password!");
             }
@@ -57,6 +57,7 @@
             document.getElementById('adminSection').style.display = 'none';
             document.getElementById('loginBox').style.display = 'block';
             alert("Logged out successfully!");
+            fetchData(); // Refresh UI to hide delete buttons
         };
 
         window.addMistake = async function() {
@@ -92,18 +93,35 @@
             }
         };
 
+        // Delete function for admin
+        window.deleteMistake = async function(id) {
+            if (!isAdmin) {
+                alert("You don't have permission!");
+                return;
+            }
+
+            if (confirm("Are you sure you want to delete this mistake?")) {
+                try {
+                    await deleteDoc(doc(db, "mistakes", id));
+                    alert("Mistake deleted successfully!");
+                } catch (e) {
+                    console.error("Error deleting document: ", e);
+                    alert("Error deleting mistake!");
+                }
+            }
+        };
+
         function fetchData() {
             onSnapshot(collection(db, "mistakes"), (snapshot) => {
                 let mistakes = [];
                 let scores = {};
 
-                snapshot.forEach((doc) => {
-                    const data = doc.data();
-                    mistakes.push(data);
+                snapshot.forEach((document) => {
+                    const data = document.docData ? document.docData() : document.data();
+                    mistakes.push({ id: document.id, ...data });
                     scores[data.name] = (scores[data.name] || 0) + 1;
                 });
 
-                // Sort by timestamp newest first
                 mistakes.sort((a, b) => b.timestamp - a.timestamp);
 
                 updateUI(mistakes, scores);
@@ -116,9 +134,16 @@
             
             mistakes.forEach(item => {
                 const li = document.createElement('li');
+                
+                let deleteBtnHtml = "";
+                if (isAdmin) {
+                    deleteBtnHtml = `<button onclick="deleteMistake('${item.id}')" class="delete-btn">Delete</button>`;
+                }
+
                 li.innerHTML = `<strong>👤 ${item.name}</strong><br>
                                 ❌ <em>Mistake:</em> ${item.mistake}<br>
-                                <div class="real-fact">✅ <em>Real Fact:</em> ${item.real}</div>`;
+                                <div class="real-fact">✅ <em>Real Fact:</em> ${item.real}</div>
+                                ${deleteBtnHtml}`;
                 mistakeListUl.appendChild(li);
             });
 
@@ -266,6 +291,21 @@
         .logout-btn:hover { 
             background-color: #dc2626; 
         }
+
+        .delete-btn {
+            background-color: #ef4444;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            font-size: 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+            width: auto;
+        }
+        .delete-btn:hover {
+            background-color: #dc2626;
+        }
     </style>
 </head>
 <body>
@@ -291,7 +331,7 @@
         <button class="logout-btn" onclick="logoutAdmin()">Logout</button>
     </div>
 
-    <!-- Leaderboard Section -->
+    <!-- Leaderboard Scoreboard -->
     <h3>👑 Leaderboard (Top Mistakes)</h3>
     <ul id="leaderboardList"></ul>
 
