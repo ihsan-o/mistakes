@@ -45,7 +45,7 @@
                 document.getElementById('adminUser').value = "";
                 document.getElementById('adminPass').value = "";
                 alert("Login Successful!");
-                fetchData(); // Refresh UI to show delete buttons
+                fetchData();
             } else {
                 alert("Invalid Username or Password!");
             }
@@ -57,7 +57,7 @@
             document.getElementById('adminSection').style.display = 'none';
             document.getElementById('loginBox').style.display = 'block';
             alert("Logged out successfully!");
-            fetchData(); // Refresh UI to hide delete buttons
+            fetchData();
         };
 
         window.addMistake = async function() {
@@ -93,7 +93,6 @@
             }
         };
 
-        // Delete function for admin
         window.deleteMistake = async function(id) {
             if (!isAdmin) {
                 alert("You don't have permission!");
@@ -117,7 +116,7 @@
                 let scores = {};
 
                 snapshot.forEach((document) => {
-                    const data = document.docData ? document.docData() : document.data();
+                    const data = document.data();
                     mistakes.push({ id: document.id, ...data });
                     scores[data.name] = (scores[data.name] || 0) + 1;
                 });
@@ -152,10 +151,16 @@
             
             const sortedScores = Object.entries(scores).sort((a, b) => b[1] - a[1]);
 
-            sortedScores.forEach(([name, count]) => {
+            sortedScores.forEach(([name, count], index) => {
                 const li = document.createElement('li');
                 li.className = "leaderboard-item";
-                li.innerHTML = `<span><strong>${name}</strong></span> <span><strong>${count} mistakes</strong></span>`;
+                
+                let rankBadge = `#${index + 1}`;
+                if (index === 0) rankBadge = "🥇 1st";
+                else if (index === 1) rankBadge = "🥈 2nd";
+                else if (index === 2) rankBadge = "🥉 3rd";
+
+                li.innerHTML = `<span><strong>${rankBadge} &nbsp; ${name}</strong></span> <span><strong>${count} mistakes</strong></span>`;
                 leaderboardUl.appendChild(li);
             });
         }
@@ -262,7 +267,7 @@
             border-left: 5px solid #10b981; 
             display: flex; 
             justify-content: space-between; 
-            padding: 12px 15px; 
+            padding: 12px 15mm 12px 15px; 
             margin: 8px 0;
             border-radius: 6px;
         }
