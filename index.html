@@ -4,6 +4,138 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mistake Leaderboard 🏆</title>
+    
+    <!-- Firebase SDK (v10) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAGFNly3GoHtX_dftyae7PmEIxqMPWJv1Y",
+            authDomain: "mistakesoffikra.firebaseapp.com",
+            projectId: "mistakesoffikra",
+            storageBucket: "mistakesoffikra.firebasestorage.app",
+            messagingSenderId: "1066736144095",
+            appId: "1:1066736144095:web:e739f21fe017cdda4fa36a",
+            measurementId: "G-HGY8ZZRW2M"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let isAdmin = localStorage.getItem('isAdmin') === 'true';
+
+        window.addEventListener('DOMContentLoaded', () => {
+            if (isAdmin) {
+                document.getElementById('adminSection').style.display = 'block';
+                document.getElementById('loginBox').style.display = 'none';
+            }
+            fetchData();
+        });
+
+        window.loginAdmin = function() {
+            const u = document.getElementById('adminUser').value.trim();
+            const p = document.getElementById('adminPass').value.trim();
+
+            if (u === "admin" && p === "fymin@2297121_") {
+                isAdmin = true;
+                localStorage.setItem('isAdmin', 'true');
+                document.getElementById('adminSection').style.display = 'block';
+                document.getElementById('loginBox').style.display = 'none';
+                document.getElementById('adminUser').value = "";
+                document.getElementById('adminPass').value = "";
+                alert("Login Successful!");
+            } else {
+                alert("Invalid Username or Password!");
+            }
+        };
+
+        window.logoutAdmin = function() {
+            isAdmin = false;
+            localStorage.setItem('isAdmin', 'false');
+            document.getElementById('adminSection').style.display = 'none';
+            document.getElementById('loginBox').style.display = 'block';
+            alert("Logged out successfully!");
+        };
+
+        window.addMistake = async function() {
+            if (!isAdmin) {
+                alert("You don't have permission!");
+                return;
+            }
+
+            const name = document.getElementById('personName').value.trim();
+            const mistake = document.getElementById('mistakeText').value.trim();
+            const real = document.getElementById('realText').value.trim();
+
+            if (name === "" || mistake === "" || real === "") {
+                alert("Please fill in all fields!");
+                return;
+            }
+
+            try {
+                await addDoc(collection(db, "mistakes"), {
+                    name: name,
+                    mistake: mistake,
+                    real: real,
+                    timestamp: Date.now()
+                });
+
+                document.getElementById('personName').value = "";
+                document.getElementById('mistakeText').value = "";
+                document.getElementById('realText').value = "";
+                alert("Mistake posted successfully!");
+            } catch (e) {
+                console.error("Error adding document: ", e);
+                alert("Error posting mistake!");
+            }
+        };
+
+        function fetchData() {
+            onSnapshot(collection(db, "mistakes"), (snapshot) => {
+                let mistakes = [];
+                let scores = {};
+
+                snapshot.forEach((doc) => {
+                    const data = doc.data();
+                    mistakes.push(data);
+                    scores[data.name] = (scores[data.name] || 0) + 1;
+                });
+
+                // Sort by timestamp newest first
+                mistakes.sort((a, b) => b.timestamp - a.timestamp);
+
+                updateUI(mistakes, scores);
+            });
+        }
+
+        function updateUI(mistakes, scores) {
+            const mistakeListUl = document.getElementById('mistakeList');
+            mistakeListUl.innerHTML = "";
+            
+            mistakes.forEach(item => {
+                const li = document.createElement('li');
+                li.innerHTML = `<strong>👤 ${item.name}</strong><br>
+                                ❌ <em>Mistake:</em> ${item.mistake}<br>
+                                <div class="real-fact">✅ <em>Real Fact:</em> ${item.real}</div>`;
+                mistakeListUl.appendChild(li);
+            });
+
+            const leaderboardUl = document.getElementById('leaderboardList');
+            leaderboardUl.innerHTML = "";
+            
+            const sortedScores = Object.entries(scores).sort((a, b) => b[1] - a[1]);
+
+            sortedScores.forEach(([name, count]) => {
+                const li = document.createElement('li');
+                li.className = "leaderboard-item";
+                li.innerHTML = `<span><strong>${name}</strong></span> <span><strong>${count} mistakes</strong></span>`;
+                leaderboardUl.appendChild(li);
+            });
+        }
+    </script>
+
     <style>
         :root {
             --bg-color: #0f172a;
@@ -16,7 +148,6 @@
             --mistake-border: #f43f5e;
             --real-bg: #14352c;
             --real-text: #34d399;
-            --leaderboard-bg: #1e293b;
         }
 
         body { 
@@ -168,97 +299,6 @@
     <h3>📜 Mistakes & Real Facts</h3>
     <ul id="mistakeList"></ul>
 </div>
-
-<script>
-    let mistakes = JSON.parse(localStorage.getItem('mistakes')) || [];
-    let scores = JSON.parse(localStorage.getItem('scores')) || {};
-    let isAdmin = localStorage.getItem('isAdmin') === 'true';
-
-    window.onload = function() {
-        if (isAdmin) {
-            document.getElementById('adminSection').style.display = 'block';
-            document.getElementById('loginBox').style.display = 'none';
-        }
-        updateUI();
-    };
-
-    function loginAdmin() {
-        const u = document.getElementById('adminUser').value.trim();
-        const p = document.getElementById('adminPass').value.trim();
-
-        if (u === "admin" && p === "fymin@2297121_") {
-            isAdmin = true;
-            localStorage.setItem('isAdmin', 'true');
-            document.getElementById('adminSection').style.display = 'block';
-            document.getElementById('loginBox').style.display = 'none';
-            document.getElementById('adminUser').value = "";
-            document.getElementById('adminPass').value = "";
-            alert("Login Successful!");
-        } else {
-            alert("Invalid Username or Password!");
-        }
-    }
-
-    function logoutAdmin() {
-        isAdmin = false;
-        localStorage.setItem('isAdmin', 'false');
-        document.getElementById('adminSection').style.display = 'none';
-        document.getElementById('loginBox').style.display = 'block';
-        alert("Logged out successfully!");
-    }
-
-    function addMistake() {
-        if (!isAdmin) {
-            alert("You don't have permission!");
-            return;
-        }
-
-        const name = document.getElementById('personName').value.trim();
-        const mistake = document.getElementById('mistakeText').value.trim();
-        const real = document.getElementById('realText').value.trim();
-
-        if (name === "" || mistake === "" || real === "") {
-            alert("Please fill in all fields!");
-            return;
-        }
-
-        mistakes.push({ name, mistake, real });
-        scores[name] = (scores[name] || 0) + 1;
-
-        localStorage.setItem('mistakes', JSON.stringify(mistakes));
-        localStorage.setItem('scores', JSON.stringify(scores));
-
-        document.getElementById('personName').value = "";
-        document.getElementById('mistakeText').value = "";
-        document.getElementById('realText').value = "";
-
-        updateUI();
-    }
-
-    function updateUI() {
-        const mistakeListUl = document.getElementById('mistakeList');
-        mistakeListUl.innerHTML = "";
-        mistakes.forEach(item => {
-            const li = document.createElement('li');
-            li.innerHTML = `<strong>👤 ${item.name}</strong><br>
-                            ❌ <em>Mistake:</em> ${item.mistake}<br>
-                            <div class="real-fact">✅ <em>Real Fact:</em> ${item.real}</div>`;
-            mistakeListUl.appendChild(li);
-        });
-
-        const leaderboardUl = document.getElementById('leaderboardList');
-        leaderboardUl.innerHTML = "";
-        
-        const sortedScores = Object.entries(scores).sort((a, b) => b[1] - a[1]);
-
-        sortedScores.forEach(([name, count]) => {
-            const li = document.createElement('li');
-            li.className = "leaderboard-item";
-            li.innerHTML = `<span><strong>${name}</strong></span> <span><strong>${count} mistakes</strong></span>`;
-            leaderboardUl.appendChild(li);
-        });
-    }
-</script>
 
 </body>
 </html>
